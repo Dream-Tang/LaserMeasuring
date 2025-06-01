@@ -58,6 +58,8 @@ namespace LaserMeasuring
             this.label_distanceA5 = new System.Windows.Forms.Label();
             this.txtBox_distanceA5 = new System.Windows.Forms.TextBox();
             this.panel5 = new System.Windows.Forms.Panel();
+            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
             this.button3 = new System.Windows.Forms.Button();
             this.label4 = new System.Windows.Forms.Label();
             this.txtBox_ = new System.Windows.Forms.TextBox();
@@ -106,7 +108,7 @@ namespace LaserMeasuring
             this.txtBox_distanceB1 = new System.Windows.Forms.TextBox();
             this.txtBox_distanceB4 = new System.Windows.Forms.TextBox();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
-            this.textBox17 = new System.Windows.Forms.TextBox();
+            this.txtBox_ABdistance = new System.Windows.Forms.TextBox();
             this.label18 = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.txtBox_distanceA8 = new System.Windows.Forms.TextBox();
@@ -115,8 +117,6 @@ namespace LaserMeasuring
             this.label_distanceA7 = new System.Windows.Forms.Label();
             this.txtBox_distanceA6 = new System.Windows.Forms.TextBox();
             this.label_distanceA6 = new System.Windows.Forms.Label();
-            this.label5 = new System.Windows.Forms.Label();
-            this.textBox2 = new System.Windows.Forms.TextBox();
             this.contextMenuStrip1.SuspendLayout();
             this.panel5.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -417,7 +417,7 @@ namespace LaserMeasuring
             this.panel5.Controls.Add(this.groupBox3);
             this.panel5.Controls.Add(this.groupBox2);
             this.panel5.Controls.Add(this.groupBox4);
-            this.panel5.Controls.Add(this.textBox17);
+            this.panel5.Controls.Add(this.txtBox_ABdistance);
             this.panel5.Controls.Add(this.label18);
             this.panel5.Controls.Add(this.groupBox1);
             this.panel5.Controls.Add(this.textBox1);
@@ -429,6 +429,26 @@ namespace LaserMeasuring
             this.panel5.Name = "panel5";
             this.panel5.Size = new System.Drawing.Size(1569, 1061);
             this.panel5.TabIndex = 0;
+            // 
+            // textBox2
+            // 
+            this.textBox2.BackColor = System.Drawing.SystemColors.Info;
+            this.textBox2.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.textBox2.Location = new System.Drawing.Point(715, 112);
+            this.textBox2.Name = "textBox2";
+            this.textBox2.Size = new System.Drawing.Size(163, 39);
+            this.textBox2.TabIndex = 116;
+            this.textBox2.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.label5.Location = new System.Drawing.Point(726, 69);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(134, 31);
+            this.label5.TabIndex = 115;
+            this.label5.Text = "标定块厚度";
             // 
             // button3
             // 
@@ -954,15 +974,16 @@ namespace LaserMeasuring
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "串口设定";
             // 
-            // textBox17
+            // txtBox_ABdistance
             // 
-            this.textBox17.BackColor = System.Drawing.SystemColors.Info;
-            this.textBox17.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.textBox17.Location = new System.Drawing.Point(924, 112);
-            this.textBox17.Name = "textBox17";
-            this.textBox17.Size = new System.Drawing.Size(163, 39);
-            this.textBox17.TabIndex = 97;
-            this.textBox17.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.txtBox_ABdistance.BackColor = System.Drawing.SystemColors.Info;
+            this.txtBox_ABdistance.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.txtBox_ABdistance.Location = new System.Drawing.Point(924, 112);
+            this.txtBox_ABdistance.Name = "txtBox_ABdistance";
+            this.txtBox_ABdistance.Size = new System.Drawing.Size(163, 39);
+            this.txtBox_ABdistance.TabIndex = 97;
+            this.txtBox_ABdistance.Text = "65.00";
+            this.txtBox_ABdistance.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
             // label18
             // 
@@ -1059,26 +1080,6 @@ namespace LaserMeasuring
             this.label_distanceA6.TabIndex = 92;
             this.label_distanceA6.Text = "测量点A6(mm)";
             // 
-            // label5
-            // 
-            this.label5.AutoSize = true;
-            this.label5.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.label5.Location = new System.Drawing.Point(726, 69);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(134, 31);
-            this.label5.TabIndex = 115;
-            this.label5.Text = "标定块厚度";
-            // 
-            // textBox2
-            // 
-            this.textBox2.BackColor = System.Drawing.SystemColors.Info;
-            this.textBox2.Font = new System.Drawing.Font("微软雅黑", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.textBox2.Location = new System.Drawing.Point(715, 112);
-            this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(163, 39);
-            this.textBox2.TabIndex = 116;
-            this.textBox2.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
-            // 
             // Form1
             // 
             this.AcceptButton = this.btn_Measure;
@@ -1136,7 +1137,7 @@ namespace LaserMeasuring
         private System.Windows.Forms.Label label_distanceA5;
         private System.Windows.Forms.TextBox txtBox_distanceA5;
         private System.Windows.Forms.Panel panel5;
-        private System.Windows.Forms.TextBox textBox17;
+        private System.Windows.Forms.TextBox txtBox_ABdistance;
         private System.Windows.Forms.Label label18;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.TextBox txtBox_distanceA8;

@@ -22,12 +22,49 @@ namespace LaserMeasuring
         float offsetSensorA = 0.00F; // A补偿值
         float offsetSensorB = 0.00F; // B补偿值
 
-        MeasurePoint[] points = { }; // 测量点的集合
+        MeasurePoint mp1, mp2, mp3, mp4, mp5, mp6, mp7, mp8; // 测量点
+
+        MeasurePoint[] measurePoints = new MeasurePoint[8]; // 测量点的集合
 
         //获取当前时间
         private System.DateTime Current_time;
         // 全局缓存区（线程安全）
         private MemoryStream _cache = new MemoryStream(1024);
+
+        // 窗口生成时，需要做的事情，变量初始化
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            btn_reloadPort_Click(null, null);
+            LockSetting("Lock");
+
+            float abDistance = 0.00f;
+
+            if (!float.TryParse(txtBox_ABdistance.Text, out abDistance))
+            {
+                Console.WriteLine("传感器间距设置错误");
+            }
+
+            mp1 = new MeasurePoint("mp1", abDistance);
+            mp2 = new MeasurePoint("mp2", abDistance);
+            mp3 = new MeasurePoint("mp3", abDistance);
+            mp4 = new MeasurePoint("mp4", abDistance);
+            mp5 = new MeasurePoint("mp5", abDistance);
+            mp6 = new MeasurePoint("mp6", abDistance);
+            mp7 = new MeasurePoint("mp7", abDistance);
+            mp8 = new MeasurePoint("mp8", abDistance);
+
+            measurePoints[0] = mp1;
+            measurePoints[1] = mp2;
+            measurePoints[2] = mp3;
+            measurePoints[3] = mp4;
+            measurePoints[4] = mp5;
+            measurePoints[5] = mp6;
+            measurePoints[6] = mp7;
+            measurePoints[7] = mp8;
+
+            Console.WriteLine($"初始化完成，生成测量点：{mp1.pointName}, {mp2.pointName}, {mp3.pointName}, {mp4.pointName}, {mp5.pointName}, {mp6.pointName}, {mp7.pointName}, {mp8.pointName}");
+        }
+
 
         #region 串口相关功能
         // 串口刷新端口号
@@ -131,7 +168,7 @@ namespace LaserMeasuring
                 StringBuilder responseSB = new StringBuilder();
 
                 // 1. 读取原始字节
-                Thread.Sleep(10); // 确保接收完数据
+                Thread.Sleep(5); // 确保接收完数据
                 byte[] response = new byte[serialPort1.BytesToRead];
                 int read = serialPort1.Read(response, 0, response.Length);
 
@@ -155,7 +192,6 @@ namespace LaserMeasuring
                 modbusMsg_Struct.idCode = response[0];
                 modbusMsg_Struct.funcCode = response[1];
 
-
                 // 跨线程修改UI，使用methodinvoker工具类
                 MethodInvoker mi = new MethodInvoker(()=> 
                 {
@@ -177,7 +213,6 @@ namespace LaserMeasuring
 
         #endregion
 
-
         // 处理串口数据
         private void Corefunc01(ModbusCmd.ModbusMsg_struct mbStruct)
         {
@@ -192,10 +227,15 @@ namespace LaserMeasuring
                         // 将传感器值减去补偿值
                         offsetSensorA = float.Parse(txtBox_OffsetSensorA.Text);
                         mbStruct.valueFloat -= offsetSensorA;
-                        string value_str = mbStruct.valueFloat.ToString("0.00");// 转换为两位小数
 
-                        RefreshUI(sensorA, pointNumA, value_str);
-                        
+                        // 给mp对象赋值
+                        measurePoints[pointNumA-1].aValue = mbStruct.valueFloat;
+
+                        mp1.aValue = mbStruct.valueFloat;
+
+                        // 测量数据显示到UI
+                        RefreshUI(mbStruct.idCode, pointNumA, mbStruct.valueFloat);
+
                         if (pointNumA < 8)
                         {
                             pointNumA += 1;
@@ -208,9 +248,12 @@ namespace LaserMeasuring
                         // 将传感器值减去补偿值
                         offsetSensorB = float.Parse(txtBox_OffsetSensorB.Text);
                         mbStruct.valueFloat -= offsetSensorB;
-                        string value_str = mbStruct.valueFloat.ToString("0.00");// 转换为两位小数
 
-                        RefreshUI(sensorB, pointNumB, value_str);
+                        // 给mp对象赋值
+                        measurePoints[pointNumB-1].bValue = mbStruct.valueFloat;
+
+                        // 测量数据显示到UI
+                        RefreshUI(mbStruct.idCode, pointNumB, mbStruct.valueFloat);
 
                         if (pointNumB < 8)
                         {
@@ -227,35 +270,37 @@ namespace LaserMeasuring
             }
         }
 
-        private void RefreshUI(UInt16 sensor,int pointNum,string value)
+        // 测量数据显示到UI
+        private void RefreshUI(UInt16 sensor,int pointNum,float valueFloat)
         {
+            string value_str = valueFloat.ToString("0.00");// 转换为两位小数
             if (sensor == sensorA)
             {
                 switch (pointNum)
                 {
                     case 1:
-                        txtBox_distanceA1.Text = value;
+                        txtBox_distanceA1.Text = value_str;
                         break;
                     case 2:
-                        txtBox_distanceA2.Text = value;
+                        txtBox_distanceA2.Text = value_str;
                         break;
                     case 3:
-                        txtBox_distanceA3.Text = value;
+                        txtBox_distanceA3.Text = value_str;
                         break;
                     case 4:
-                        txtBox_distanceA4.Text = value;
+                        txtBox_distanceA4.Text = value_str;
                         break;
                     case 5:
-                        txtBox_distanceA5.Text = value;
+                        txtBox_distanceA5.Text = value_str;
                         break;
                     case 6:
-                        txtBox_distanceA6.Text = value;
+                        txtBox_distanceA6.Text = value_str;
                         break;
                     case 7:
-                        txtBox_distanceA7.Text = value;
+                        txtBox_distanceA7.Text = value_str;
                         break;
                     case 8:
-                        txtBox_distanceA8.Text = value;
+                        txtBox_distanceA8.Text = value_str;
                         break;
                     default:
                         break;
@@ -266,28 +311,36 @@ namespace LaserMeasuring
                 switch (pointNum)
                 {
                     case 1:
-                        txtBox_distanceB1.Text = value;
+                        txtBox_distanceB1.Text = value_str;
+                        txtBox_Thickness1.Text = measurePoints[pointNum-1].pointThickness.ToString("F2");
                         break;
                     case 2:
-                        txtBox_distanceB2.Text = value;
+                        txtBox_distanceB2.Text = value_str;
+                        txtBox_Thickness2.Text = measurePoints[pointNum-1].pointThickness.ToString("F2");
                         break;
                     case 3:
-                        txtBox_distanceB3.Text = value;
+                        txtBox_distanceB3.Text = value_str;
+                        txtBox_Thickness3.Text = measurePoints[pointNum-1].pointThickness.ToString("F2");
                         break;
                     case 4:
-                        txtBox_distanceB4.Text = value;
+                        txtBox_distanceB4.Text = value_str;
+                        txtBox_Thickness4.Text = measurePoints[pointNum-1].pointThickness.ToString("F2");
                         break;
                     case 5:
-                        txtBox_distanceB5.Text = value;
+                        txtBox_distanceB5.Text = value_str;
+                        txtBox_Thickness5.Text = measurePoints[pointNum-1].pointThickness.ToString("F2");
                         break;
                     case 6:
-                        txtBox_distanceB6.Text = value;
+                        txtBox_distanceB6.Text = value_str;
+                        txtBox_Thickness6.Text = measurePoints[pointNum-1].pointThickness.ToString("F2");
                         break;
                     case 7:
-                        txtBox_distanceB7.Text = value;
+                        txtBox_distanceB7.Text = value_str;
+                        txtBox_Thickness7.Text = measurePoints[pointNum-1].pointThickness.ToString("F2");
                         break;
                     case 8:
-                        txtBox_distanceB8.Text = value;
+                        txtBox_distanceB8.Text = value_str;
+                        txtBox_Thickness8.Text = measurePoints[pointNum-1].pointThickness.ToString("F2");
                         break;
                     default:
                         break;
@@ -306,14 +359,6 @@ namespace LaserMeasuring
         {
             this.richTextBox1.SelectionStart = int.MaxValue;
             this.richTextBox1.ScrollToCaret();
-        }
-
-        // 窗口生成时，需要做的事情
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            btn_reloadPort_Click(null, null);
-            LockSetting("Lock");
-
         }
 
         #region 控件触发事件

@@ -22,6 +22,7 @@ namespace LaserMeasuring
         {
             string crcStr = "";
 
+            // id转换成string时前面补0
             string cmd = id.ToString("D2") + "040000000271";
 
             // 待CRC校验数
