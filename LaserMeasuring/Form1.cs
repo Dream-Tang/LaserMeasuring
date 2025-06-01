@@ -13,16 +13,14 @@ namespace LaserMeasuring
         {
             InitializeComponent();
         }
+        UInt16 sensorA = 1; // sensorA 的设备号
+        UInt16 sensorB = 2; // sensorB 的设备号
 
-        int idCode = 1;   // modbus 设备号
-        int funcCode = 0; // modbus 功能码
         UInt16 pointNumA = 1; // 点位标记
         UInt16 pointNumB = 1; // 点位标记
-        string sensorA = "01";
-        string sensorB = "02";
 
-        float offsetSensorA = 0.00F;
-        float offsetSensorB = 0.00F;
+        float offsetSensorA = 0.00F; // A补偿值
+        float offsetSensorB = 0.00F; // B补偿值
 
         MeasurePoint[] points = { }; // 测量点的集合
 
@@ -131,7 +129,6 @@ namespace LaserMeasuring
             try
             {
                 StringBuilder responseSB = new StringBuilder();
-                int registerValue = 0; 
 
                 // 1. 读取原始字节
                 Thread.Sleep(10); // 确保接收完数据
@@ -152,61 +149,20 @@ namespace LaserMeasuring
                 Current_time = System.DateTime.Now;
                 SetMsg("[" + Current_time.ToString("yyyy-MM-dd HH:mm:ss") + "] Recieved:<-- " + responseSB + "\r\n");
 
-                idCode = response[0];
-                funcCode = response[1];
+                // 使用结构体类型，将一次modbus通信的数据打包起来
+                ModbusCmd.ModbusMsg_struct modbusMsg_Struct = new ModbusCmd.ModbusMsg_struct();
+                modbusMsg_Struct.response = response;
+                modbusMsg_Struct.idCode = response[0];
+                modbusMsg_Struct.funcCode = response[1];
+
 
                 // 跨线程修改UI，使用methodinvoker工具类
-                MethodInvoker mi = new MethodInvoker(() =>
+                MethodInvoker mi = new MethodInvoker(()=> 
                 {
-                    if (funcCode == 4)   // 04H 当收到的信息中有04时，才是收到正确的测量点B返回值
-                    {
-                        try
-                        {
-                            registerValue = CalcuRegisterValue(response);
-                            // 转换成两位小数的double值
-                            float valueFloat = registerValue / 100.00F;
-                            valueFloat = (float)Math.Round(valueFloat, 2);
-
-                            if (idCode == 1)
-                            {
-                                // 将传感器值减去补偿值
-                                offsetSensorA = float.Parse(txtBox_OffsetSensorA.Text);
-                                valueFloat -= offsetSensorA;
-                                string value_str = valueFloat.ToString("0.00");// 转换为两位小数
-
-                                RefreshUI(sensorA, pointNumA, value_str);
-
-                                if (pointNumA < 8)
-                                {
-                                    pointNumA += 1;
-                                }
-                                else
-                                    pointNumA = 1;
-                            }
-                            else if (idCode == 2)
-                            {
-                                // 将传感器值减去补偿值
-                                offsetSensorB = float.Parse(txtBox_OffsetSensorB.Text);
-                                valueFloat -= offsetSensorB;
-                                string value_str = valueFloat.ToString("0.00");// 转换为两位小数
-
-                                RefreshUI(sensorB, pointNumB, value_str);
-
-                                if (pointNumB < 8)
-                                {
-                                    pointNumB += 1;
-                                }
-                                else
-                                    pointNumB = 1;
-                            }     
-                        }
-                        catch (Exception)
-                        {
-                            ;
-                        }
-                    }
+                    Corefunc01(modbusMsg_Struct);
                 });
                 BeginInvoke(mi);
+
             }
             catch (Exception ex)
             {
@@ -221,32 +177,63 @@ namespace LaserMeasuring
 
         #endregion
 
-        // 从response消息中提取寄存器值
-        private int CalcuRegisterValue(byte[] response)
+
+        // 处理串口数据
+        private void Corefunc01(ModbusCmd.ModbusMsg_struct mbStruct)
         {
-            // respond的4到7位为寄存器值
-            byte[] valueHex = { response[3], response[4], response[5], response[6] };
-
-            // 十六进制转换为十进制（十六进制数组，高位在前）
-            int valueDec = 0;
-            foreach (byte b in valueHex)
+            if (mbStruct.funcCode == 4)   // 功能码为04时，返回的才是测量值
             {
-                // 通过左移操作和按位或运算组合字节
-                valueDec = (valueDec << 8) | b;
-            }
-            Console.WriteLine($"十六进制数组 0x{BitConverter.ToString(valueHex).Replace("-", "")} 转换为十进制是: {valueDec}");
+                try
+                {
+                    mbStruct.valueFloat = ModbusCmd.CalcuDecValue(mbStruct.response);
 
-            return valueDec;
+                    if (mbStruct.idCode == sensorA)
+                    {
+                        // 将传感器值减去补偿值
+                        offsetSensorA = float.Parse(txtBox_OffsetSensorA.Text);
+                        mbStruct.valueFloat -= offsetSensorA;
+                        string value_str = mbStruct.valueFloat.ToString("0.00");// 转换为两位小数
+
+                        RefreshUI(sensorA, pointNumA, value_str);
+                        
+                        if (pointNumA < 8)
+                        {
+                            pointNumA += 1;
+                        }
+                        else
+                            pointNumA = 1;
+                    }
+                    else if (mbStruct.idCode == sensorB)
+                    {
+                        // 将传感器值减去补偿值
+                        offsetSensorB = float.Parse(txtBox_OffsetSensorB.Text);
+                        mbStruct.valueFloat -= offsetSensorB;
+                        string value_str = mbStruct.valueFloat.ToString("0.00");// 转换为两位小数
+
+                        RefreshUI(sensorB, pointNumB, value_str);
+
+                        if (pointNumB < 8)
+                        {
+                            pointNumB += 1;
+                        }
+                        else
+                            pointNumB = 1;
+                    }
+                }
+                catch (Exception)
+                {
+                    ;
+                }
+            }
         }
 
-        private void RefreshUI(string sensor,int pointNum,string value)
+        private void RefreshUI(UInt16 sensor,int pointNum,string value)
         {
             if (sensor == sensorA)
             {
                 switch (pointNum)
                 {
                     case 1:
-
                         txtBox_distanceA1.Text = value;
                         break;
                     case 2:
@@ -436,6 +423,7 @@ namespace LaserMeasuring
 
         #endregion
 
+        // 测量是否在设定阈值区间内
         private void btn_Measure_Click(object sender, EventArgs e)
         {
             string value = txtBox_distanceA1.Text;
@@ -452,6 +440,7 @@ namespace LaserMeasuring
             }
         }
 
+        // 文本框只允许输入数字、退格键和小数点
         private void txtBox_distance_KeyPress(object sender, KeyPressEventArgs e)
         {
             // 允许输入数字、退格键和小数点
@@ -476,6 +465,7 @@ namespace LaserMeasuring
         private void ReadValue(object sender, EventArgs e) 
         {
             var t1 = Task.Run(() => serialWriteHEX(ModbusCmd.readDistance(sensorA)));
+            // 此处需要等待串口得到A的值，再进行B的通信，因为串口是无法多个通信同时进行的。需要使用async await操作
             var t2 = Task.Run(() => serialWriteHEX(ModbusCmd.readDistance(sensorB)));
         }
 
@@ -507,6 +497,7 @@ namespace LaserMeasuring
             pointNumB = 1;
         }
 
+        // 单次执行按钮
         private void button3_Click(object sender, EventArgs e)
         {
             ReadValue(null,null);

@@ -6,14 +6,23 @@ namespace LaserMeasuring
 {
     class ModbusCmd
     {
+        // 结构体定义，用来将解析后的modbus数据集合起来
+        public struct ModbusMsg_struct 
+        {
+            public byte[] response; // 串口接收的二进制消息
+            public UInt16 idCode;  // 地址码
+            public UInt16 funcCode; // 功能码
+            public float valueFloat; // float距离值
+        };
+
         internal const int DISTANCE = 0;
 
         // 读取距离所发的modbus数据
-        public static string readDistance(string id)
+        public static string readDistance(UInt16 id)
         {
             string crcStr = "";
 
-            string cmd = id + "040000000271";
+            string cmd = id.ToString("D2") + "040000000271";
 
             // 待CRC校验数
             byte[] cmdHex = HexStringToByteArray(cmd);
@@ -55,6 +64,32 @@ namespace LaserMeasuring
             byte[] bytes = combinedList.ToArray();
             return bytes;
         }
+
+        // Modbus数据解析，从response消息中计算十进制数值（传感距离读取）
+        // 将数据转换成float类型输出
+        public static float CalcuDecValue(byte[] response)
+        {
+            // respond的4到7位为寄存器值
+            byte[] valueHex = { response[3], response[4], response[5], response[6] };
+
+            // 十六进制转换为十进制（十六进制数组，高位在前）
+            int valueDec = 0;
+            foreach (byte b in valueHex)
+            {
+                // 通过左移操作和按位或运算组合字节
+                valueDec = (valueDec << 8) | b;
+            }
+            Console.WriteLine($"十六进制数组 0x{BitConverter.ToString(valueHex).Replace("-", "")} 转换为十进制是: {valueDec}");
+
+            // 转换成两位小数的float值
+            float valueFloat = valueDec / 100.00F;
+            valueFloat = (float)Math.Round(valueFloat, 2);
+
+            return valueFloat;
+        }
+
+
+
     }
 
     class ModbusCRC16
