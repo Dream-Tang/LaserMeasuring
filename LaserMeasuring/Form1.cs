@@ -136,6 +136,12 @@ namespace LaserMeasuring
 
             try
             {
+                while ((serialPort1.BytesToRead > 0) || (serialPort1.BytesToWrite > 0)) // 串口繁忙
+                {
+                    Console.WriteLine("串口繁忙");
+                    Thread.Sleep(100);
+                }
+
                 serialPort1.Write(hexOutput, 0, hexOutput.Length);
 
                 // 给发送信息串每两个字符加一个空格，便于信息观看
@@ -160,31 +166,38 @@ namespace LaserMeasuring
             }
         }
 
+        // 串口读取数据
+        private byte[] serialReadHEX()
+        {
+            Thread.Sleep(2); // 确保数据全部传完
+            StringBuilder responseSB = new StringBuilder();
+
+            byte[] response = new byte[serialPort1.BytesToRead];
+            int read = serialPort1.Read(response, 0, response.Length);
+
+            Console.WriteLine("收到从站回应：");
+            foreach (byte b in response)
+            {
+                // 将数组转换成字符串
+                responseSB.Append(b.ToString("X2"));
+                responseSB.Append(" ");
+                Console.Write($"{b:X2} ");
+            }
+            Console.WriteLine();
+            string responseStr = responseSB.ToString();
+
+            Current_time = System.DateTime.Now;
+            SetMsg("[" + Current_time.ToString("yyyy-MM-dd HH:mm:ss") + "] Recieved:<-- " + responseSB + "\r\n");
+
+            return response;
+        }
+
         // 串口中断事件：当有数据收到时执行。将收到的数据按ASCII转换显示
         private void SerialPort1_DataRecived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
         {
             try
             {
-                StringBuilder responseSB = new StringBuilder();
-
-                // 1. 读取原始字节
-                Thread.Sleep(5); // 确保接收完数据
-                byte[] response = new byte[serialPort1.BytesToRead];
-                int read = serialPort1.Read(response, 0, response.Length);
-
-                Console.WriteLine("收到从站回应：");
-                foreach (byte b in response)
-                {
-                    // 将数组转换成字符串
-                    responseSB.Append(b.ToString("X2"));
-                    responseSB.Append(" ");
-                    Console.Write($"{b:X2} ");
-                }
-                Console.WriteLine();
-                string responseStr = responseSB.ToString();
-
-                Current_time = System.DateTime.Now;
-                SetMsg("[" + Current_time.ToString("yyyy-MM-dd HH:mm:ss") + "] Recieved:<-- " + responseSB + "\r\n");
+                byte[] response = serialReadHEX();
 
                 // 使用结构体类型，将一次modbus通信的数据打包起来
                 ModbusCmd.ModbusMsg_struct modbusMsg_Struct = new ModbusCmd.ModbusMsg_struct();
@@ -193,7 +206,7 @@ namespace LaserMeasuring
                 modbusMsg_Struct.funcCode = response[1];
 
                 // 跨线程修改UI，使用methodinvoker工具类
-                MethodInvoker mi = new MethodInvoker(()=> 
+                MethodInvoker mi = new MethodInvoker(() =>
                 {
                     Corefunc01(modbusMsg_Struct);
                 });
@@ -509,10 +522,54 @@ namespace LaserMeasuring
         // 读取数据
         private void ReadValue(object sender, EventArgs e) 
         {
-            var t1 = Task.Run(() => serialWriteHEX(ModbusCmd.readDistance(sensorA)));
-            // 此处需要等待串口得到A的值，再进行B的通信，因为串口是无法多个通信同时进行的。需要使用async await操作
-            var t2 = Task.Run(() => serialWriteHEX(ModbusCmd.readDistance(sensorB)));
+
         }
+
+        // 辅助方法：发送单个命令并返回响应
+        private async Task<string> SendCommandAsync(AsyncSerialPort port, string command)
+        {
+            Console.WriteLine($"开始发送命令: {command}");
+
+            // 调用异步发送接收方法
+            var response = await port.SendAndReceiveAsync(command);
+
+            Console.WriteLine($"命令 {command} 已完成");
+            return response;
+        }
+
+        // 串口异步发收，且等待接收完成才开始下一个发送
+        public async Task RunAsyncExample()
+        {
+            var serialPort = new AsyncSerialPort("COM3", 115200);
+            await serialPort.OpenAsync();
+
+            try
+            {
+                // 顺序执行多个发送-接收操作
+                // 虽然使用了Task.WhenAll，但由于SemaphoreSlim的限制
+                // 实际会按顺序执行，而非并行执行
+                var responses = await Task.WhenAll(
+
+                    SendCommandAsync(serialPort, ModbusCmd.readDistance(sensorA)),
+                    SendCommandAsync(serialPort, ModbusCmd.readDistance(sensorB))
+                );
+
+                foreach (var response in responses)
+                {
+                    Console.WriteLine($"响应: {response}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"错误: {ex.Message}");
+            }
+            finally
+            {
+                serialPort.Close();
+            }
+        }
+
+
 
         // 清除SensorA数据
         private void button1_Click(object sender, EventArgs e)
@@ -543,9 +600,10 @@ namespace LaserMeasuring
         }
 
         // 单次执行按钮
-        private void button3_Click(object sender, EventArgs e)
+        private async void button3_Click(object sender, EventArgs e)
         {
-            ReadValue(null,null);
+            await RunAsyncExample();
+            //RunExample();
         }
     }
 }

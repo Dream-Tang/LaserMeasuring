@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace LaserMesuring.Properties {
+namespace LaserMeasuring.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]

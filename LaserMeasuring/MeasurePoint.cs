@@ -18,7 +18,6 @@ namespace LaserMeasuring
 
 
         public string pointName { get; set; }
-
         public float aValue  // 传感器A测量值
         {
             get {return _aValue; } 
