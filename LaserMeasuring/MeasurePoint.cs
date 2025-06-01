@@ -18,6 +18,9 @@ namespace LaserMeasuring
 
 
         public string pointName { get; set; }
+
+        public UInt16 pointNum { get; set; }
+
         public float aValue  // 传感器A测量值
         {
             get {return _aValue; } 
@@ -48,7 +51,7 @@ namespace LaserMeasuring
         }
 
         // 有参构造函数
-        public MeasurePoint(string name, float abDistance, float aValue, float bValue)
+        public MeasurePoint(string name, UInt16 num, float abDistance, float aValue, float bValue)
         {
             this.pointName = name;
             this.aValue = aValue;
@@ -58,7 +61,7 @@ namespace LaserMeasuring
             this.abDistance = abDistance;
         }
         // 无参构造函数
-        public MeasurePoint(string name, float abDistance) 
+        public MeasurePoint(string name, UInt16 num, float abDistance) 
         {
             this.pointName = name;
             this.abDistance = abDistance;

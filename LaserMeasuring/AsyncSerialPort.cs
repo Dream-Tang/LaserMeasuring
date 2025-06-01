@@ -6,17 +6,19 @@ using System.Text;
 
 namespace LaserMeasuring
 {
-    public class AsyncSerialPort
+    public class AsyncSerialPort:SerialPort
     {
         private readonly SerialPort _serialPort;
         // 信号量，用于限制同时只能有一个发送-接收操作在执行
         // 初始计数和最大计数都设为1，相当于互斥锁
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1); // 限制并发为1
         private readonly CancellationTokenSource _cts = new CancellationTokenSource(); // 全局取消令牌源，用于取消所有操作
+        //private byte[] _response;
         private string _receivedData;
         //获取当前时间
         private System.DateTime Current_time;
 
+        // 构造函数
         public AsyncSerialPort(string portName, int baudRate)
         {
             _serialPort = new SerialPort(portName, baudRate);
@@ -24,6 +26,8 @@ namespace LaserMeasuring
             // 当串口接收到数据时，此事件会被触发
             _serialPort.DataReceived += SerialPort_DataReceived;
         }
+
+        public byte[] response { get; set; }
 
         // 异步打开串口
         // 返回已完成的任务，因为打开操作是同步的
@@ -37,7 +41,7 @@ namespace LaserMeasuring
         }
 
         // 关闭串口并取消所有正在进行的操作
-        public void Close()
+        public void CloseAsync()
         {
             _cts.Cancel();
             _serialPort.Close();
@@ -50,6 +54,7 @@ namespace LaserMeasuring
             try
             {
                 byte[] response =  serialReadHEX();
+                _receivedData = ByteToString(response);
             }
             catch (Exception ex)
             {
@@ -59,7 +64,7 @@ namespace LaserMeasuring
         }
 
         // 异步发送数据并等待回复
-        public async Task<string> SendAndReceiveAsync(string dataToSend, int timeout = 5000)
+        public async Task<string> SendAndReceiveAsync(string dataToSend, int timeout = 3000)
         {
             // 等待前一个操作完成
             await _semaphore.WaitAsync(_cts.Token).ConfigureAwait(false);
@@ -87,6 +92,11 @@ namespace LaserMeasuring
                         await Task.Delay(10, linkedCts.Token).ConfigureAwait(false);
                     }
                     // 返回接收到的数据
+                    
+                    Current_time = System.DateTime.Now;
+                    string msg = "[" + Current_time.ToString("yyyy-MM-dd HH:mm:ss") + "] Recieved:<-- " + _receivedData + "\r\n";
+                    Console.Write(msg);
+
                     return _receivedData;
                 }
             }
@@ -104,8 +114,8 @@ namespace LaserMeasuring
             }
         }
 
-        // 串口发送数据
-        public void serialWriteHEX(string dataToSend)
+        // 串口发送HEX数据
+        public string serialWriteHEX(string dataToSend)
         {
             byte[] hexOutput;
             hexOutput = ModbusCmd.HexStringToByteArray(dataToSend);
@@ -124,41 +134,50 @@ namespace LaserMeasuring
                         dataSb.Append(" ");
                     }
                 }
-                //dataSb.ToString();
-                //Console.WriteLine($"已发送数据: {dataSb}");
 
                 Current_time = System.DateTime.Now;
-                Console.WriteLine("[" + Current_time.ToString("yyyy-MM-dd HH:mm:ss") + "] Send:--> " + dataSb + "\r\n");
+                string msg = "[" + Current_time.ToString("yyyy-MM-dd HH:mm:ss") + "] Send:--> " + dataSb ;
+                Console.Write(msg);
+                return msg;
             }
             catch (Exception)
             {
-                Console.WriteLine($"串口{_serialPort.PortName}发送失败: {dataToSend}");
+                string msg = $"串口{_serialPort.PortName}发送失败: {dataToSend}";
+                Console.WriteLine(msg);
+                return msg;
             }
         }
 
-        private byte[] serialReadHEX()
+        // 串口读取HEX数据
+        public byte[] serialReadHEX()
         {
             Thread.Sleep(2); // 确保数据全部传完
-            StringBuilder responseSB = new StringBuilder();
 
-            byte[] response = new byte[_serialPort.BytesToRead];
+            response = new byte[_serialPort.BytesToRead];
             int read = _serialPort.Read(response, 0, response.Length);
 
-            Console.WriteLine("收到从站回应：");
+            _receivedData = ByteToString(response);
+
+            Console.Write($"收到从站回应：{_receivedData}");
+
+            return response;
+        }
+
+        // 二进制转换成string，在接收数据后使用
+        public string ByteToString(byte[] response)
+        {
+            StringBuilder responseSB = new StringBuilder();
+            
             foreach (byte b in response)
             {
                 // 将数组转换成字符串
                 responseSB.Append(b.ToString("X2"));
                 responseSB.Append(" ");
-                Console.Write($"{b:X2} ");
             }
             Console.WriteLine();
+
             string responseStr = responseSB.ToString();
-
-            Current_time = System.DateTime.Now;
-            Console.Write("[" + Current_time.ToString("yyyy-MM-dd HH:mm:ss") + "] Recieved:<-- " + responseSB + "\r\n");
-
-            return response;
+            return responseStr;
         }
 
     }

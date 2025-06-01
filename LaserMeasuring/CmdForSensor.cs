@@ -58,10 +58,7 @@ namespace LaserMeasuring
                 Console.WriteLine("准备串口数据时出错");
             }
 
-            // 增加回车换行
-            //byte[] bytes2 = Encoding.ASCII.GetBytes("\r\n");
             combinedList.AddRange(bytes1);
-            //combinedList.AddRange(bytes2);
             byte[] bytes = combinedList.ToArray();
             return bytes;
         }

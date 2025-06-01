@@ -58,17 +58,19 @@ namespace LaserMeasuring
             this.label_distanceA5 = new System.Windows.Forms.Label();
             this.txtBox_distanceA5 = new System.Windows.Forms.TextBox();
             this.panel5 = new System.Windows.Forms.Panel();
+            this.btn_ReadAll = new System.Windows.Forms.Button();
+            this.btn_ClearAll = new System.Windows.Forms.Button();
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
-            this.button3 = new System.Windows.Forms.Button();
+            this.btn_ReadAB = new System.Windows.Forms.Button();
             this.label4 = new System.Windows.Forms.Label();
             this.txtBox_ = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
             this.txtBox_OffsetSensorB = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.txtBox_OffsetSensorA = new System.Windows.Forms.TextBox();
-            this.button2 = new System.Windows.Forms.Button();
-            this.button1 = new System.Windows.Forms.Button();
+            this.btn_ClearB = new System.Windows.Forms.Button();
+            this.btn_ClearA = new System.Windows.Forms.Button();
             this.btn_ReadB = new System.Windows.Forms.Button();
             this.btn_ReadA = new System.Windows.Forms.Button();
             this.chkBox_AutoRead = new System.Windows.Forms.CheckBox();
@@ -130,7 +132,6 @@ namespace LaserMeasuring
             this.serialPort1.ParityReplace = ((byte)(0));
             this.serialPort1.ReadTimeout = 2000;
             this.serialPort1.WriteTimeout = 2000;
-            this.serialPort1.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(this.SerialPort1_DataRecived);
             // 
             // contextMenuStrip1
             // 
@@ -149,7 +150,7 @@ namespace LaserMeasuring
             // 
             // timer1
             // 
-            this.timer1.Tick += new System.EventHandler(this.ReadValue);
+            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
             // 
             // cobBox_SeriPortNum
             // 
@@ -399,17 +400,19 @@ namespace LaserMeasuring
             // panel5
             // 
             this.panel5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panel5.Controls.Add(this.btn_ReadAll);
+            this.panel5.Controls.Add(this.btn_ClearAll);
             this.panel5.Controls.Add(this.textBox2);
             this.panel5.Controls.Add(this.label5);
-            this.panel5.Controls.Add(this.button3);
+            this.panel5.Controls.Add(this.btn_ReadAB);
             this.panel5.Controls.Add(this.label4);
             this.panel5.Controls.Add(this.txtBox_);
             this.panel5.Controls.Add(this.label3);
             this.panel5.Controls.Add(this.txtBox_OffsetSensorB);
             this.panel5.Controls.Add(this.label1);
             this.panel5.Controls.Add(this.txtBox_OffsetSensorA);
-            this.panel5.Controls.Add(this.button2);
-            this.panel5.Controls.Add(this.button1);
+            this.panel5.Controls.Add(this.btn_ClearB);
+            this.panel5.Controls.Add(this.btn_ClearA);
             this.panel5.Controls.Add(this.btn_ReadB);
             this.panel5.Controls.Add(this.btn_ReadA);
             this.panel5.Controls.Add(this.chkBox_AutoRead);
@@ -429,6 +432,28 @@ namespace LaserMeasuring
             this.panel5.Name = "panel5";
             this.panel5.Size = new System.Drawing.Size(1569, 1061);
             this.panel5.TabIndex = 0;
+            // 
+            // btn_ReadAll
+            // 
+            this.btn_ReadAll.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btn_ReadAll.Location = new System.Drawing.Point(1404, 340);
+            this.btn_ReadAll.Name = "btn_ReadAll";
+            this.btn_ReadAll.Size = new System.Drawing.Size(117, 32);
+            this.btn_ReadAll.TabIndex = 118;
+            this.btn_ReadAll.Text = "全部读取";
+            this.btn_ReadAll.UseVisualStyleBackColor = true;
+            this.btn_ReadAll.Click += new System.EventHandler(this.btn_ReadAll_Click);
+            // 
+            // btn_ClearAll
+            // 
+            this.btn_ClearAll.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btn_ClearAll.Location = new System.Drawing.Point(1404, 385);
+            this.btn_ClearAll.Name = "btn_ClearAll";
+            this.btn_ClearAll.Size = new System.Drawing.Size(117, 32);
+            this.btn_ClearAll.TabIndex = 117;
+            this.btn_ClearAll.Text = "全部清除";
+            this.btn_ClearAll.UseVisualStyleBackColor = true;
+            this.btn_ClearAll.Click += new System.EventHandler(this.btn_ClearAll_Click);
             // 
             // textBox2
             // 
@@ -450,17 +475,17 @@ namespace LaserMeasuring
             this.label5.TabIndex = 115;
             this.label5.Text = "标定块厚度";
             // 
-            // button3
+            // btn_ReadAB
             // 
-            this.button3.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.button3.Font = new System.Drawing.Font("微软雅黑", 10.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.button3.Location = new System.Drawing.Point(734, 10);
-            this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(129, 47);
-            this.button3.TabIndex = 114;
-            this.button3.Text = "请求数据";
-            this.button3.UseVisualStyleBackColor = true;
-            this.button3.Click += new System.EventHandler(this.button3_Click);
+            this.btn_ReadAB.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btn_ReadAB.Font = new System.Drawing.Font("微软雅黑", 10.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.btn_ReadAB.Location = new System.Drawing.Point(1404, 122);
+            this.btn_ReadAB.Name = "btn_ReadAB";
+            this.btn_ReadAB.Size = new System.Drawing.Size(129, 47);
+            this.btn_ReadAB.TabIndex = 114;
+            this.btn_ReadAB.Text = "读一个点";
+            this.btn_ReadAB.UseVisualStyleBackColor = true;
+            this.btn_ReadAB.Click += new System.EventHandler(this.btn_ReadAB_Click);
             // 
             // label4
             // 
@@ -522,27 +547,27 @@ namespace LaserMeasuring
             this.txtBox_OffsetSensorA.Text = "0.00";
             this.txtBox_OffsetSensorA.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
-            // button2
+            // btn_ClearB
             // 
-            this.button2.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.button2.Location = new System.Drawing.Point(1404, 550);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(117, 32);
-            this.button2.TabIndex = 107;
-            this.button2.Text = "清除数据B";
-            this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.button2_Click);
+            this.btn_ClearB.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btn_ClearB.Location = new System.Drawing.Point(1404, 550);
+            this.btn_ClearB.Name = "btn_ClearB";
+            this.btn_ClearB.Size = new System.Drawing.Size(117, 32);
+            this.btn_ClearB.TabIndex = 107;
+            this.btn_ClearB.Text = "清除数据B";
+            this.btn_ClearB.UseVisualStyleBackColor = true;
+            this.btn_ClearB.Click += new System.EventHandler(this.btn_ClearB_Click);
             // 
-            // button1
+            // btn_ClearA
             // 
-            this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.button1.Location = new System.Drawing.Point(1404, 257);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(117, 32);
-            this.button1.TabIndex = 106;
-            this.button1.Text = "清除数据A";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.btn_ClearA.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btn_ClearA.Location = new System.Drawing.Point(1404, 257);
+            this.btn_ClearA.Name = "btn_ClearA";
+            this.btn_ClearA.Size = new System.Drawing.Size(117, 32);
+            this.btn_ClearA.TabIndex = 106;
+            this.btn_ClearA.Text = "清除数据A";
+            this.btn_ClearA.UseVisualStyleBackColor = true;
+            this.btn_ClearA.Click += new System.EventHandler(this.btn_ClearA_Click);
             // 
             // btn_ReadB
             // 
@@ -1185,17 +1210,19 @@ namespace LaserMeasuring
         private System.Windows.Forms.CheckBox chkBox_AutoRead;
         private System.Windows.Forms.Button btn_ReadA;
         private System.Windows.Forms.Button btn_ReadB;
-        private System.Windows.Forms.Button button2;
-        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button btn_ClearB;
+        private System.Windows.Forms.Button btn_ClearA;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.TextBox txtBox_OffsetSensorB;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TextBox txtBox_OffsetSensorA;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.TextBox txtBox_;
-        private System.Windows.Forms.Button button3;
+        private System.Windows.Forms.Button btn_ReadAB;
         private System.Windows.Forms.TextBox textBox2;
         private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Button btn_ClearAll;
+        private System.Windows.Forms.Button btn_ReadAll;
     }
 }
 

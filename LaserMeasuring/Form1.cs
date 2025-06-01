@@ -4,6 +4,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace LaserMeasuring
 {
@@ -26,6 +27,8 @@ namespace LaserMeasuring
 
         MeasurePoint[] measurePoints = new MeasurePoint[8]; // 测量点的集合
 
+        AsyncSerialPort asySerialPort = new AsyncSerialPort("COM3",115200);
+
         //获取当前时间
         private System.DateTime Current_time;
         // 全局缓存区（线程安全）
@@ -44,14 +47,14 @@ namespace LaserMeasuring
                 Console.WriteLine("传感器间距设置错误");
             }
 
-            mp1 = new MeasurePoint("mp1", abDistance);
-            mp2 = new MeasurePoint("mp2", abDistance);
-            mp3 = new MeasurePoint("mp3", abDistance);
-            mp4 = new MeasurePoint("mp4", abDistance);
-            mp5 = new MeasurePoint("mp5", abDistance);
-            mp6 = new MeasurePoint("mp6", abDistance);
-            mp7 = new MeasurePoint("mp7", abDistance);
-            mp8 = new MeasurePoint("mp8", abDistance);
+            mp1 = new MeasurePoint("mp1", 1, abDistance);
+            mp2 = new MeasurePoint("mp2", 2, abDistance);
+            mp3 = new MeasurePoint("mp3", 3, abDistance);
+            mp4 = new MeasurePoint("mp4", 4, abDistance);
+            mp5 = new MeasurePoint("mp5", 5, abDistance);
+            mp6 = new MeasurePoint("mp6", 6, abDistance);
+            mp7 = new MeasurePoint("mp7", 7, abDistance);
+            mp8 = new MeasurePoint("mp8", 8, abDistance);
 
             measurePoints[0] = mp1;
             measurePoints[1] = mp2;
@@ -80,12 +83,12 @@ namespace LaserMeasuring
         private void btn_openSerial_Click(object sender, EventArgs e)
         {
             try
-            {
-                if (!serialPort1.IsOpen)
+            {   // 使用异步串口实例代替serialPort1
+                if (!asySerialPort.IsOpen)
                 {
-                    serialPort1.PortName = cobBox_SeriPortNum.Text;
-                    serialPort1.BaudRate = Convert.ToInt32(cobBox_BaudRate.Text);
-                    serialPort1.Open();
+                    asySerialPort.PortName = cobBox_SeriPortNum.Text;
+                    asySerialPort.BaudRate = Convert.ToInt32(cobBox_BaudRate.Text);
+                    asySerialPort.OpenAsync();
                     btn_openSerial.Text = "关闭串口";
                     serialPort_label.Text = "串口已打开";
                     serialPort_label.BackColor = System.Drawing.Color.Green;
@@ -94,7 +97,7 @@ namespace LaserMeasuring
                 }
                 else
                 {
-                    serialPort1.Close();
+                    asySerialPort.Close();
                     btn_openSerial.Text = "打开串口";
                     serialPort_label.Text = "串口已关闭";
                     serialPort_label.BackColor = System.Drawing.SystemColors.ControlText;
@@ -128,106 +131,10 @@ namespace LaserMeasuring
             }
         }
 
-        // 串口发送数据
-        private void serialWriteHEX(string dataToSend)
-        {
-            byte[] hexOutput;
-            hexOutput = ModbusCmd.HexStringToByteArray(dataToSend);
-
-            try
-            {
-                while ((serialPort1.BytesToRead > 0) || (serialPort1.BytesToWrite > 0)) // 串口繁忙
-                {
-                    Console.WriteLine("串口繁忙");
-                    Thread.Sleep(100);
-                }
-
-                serialPort1.Write(hexOutput, 0, hexOutput.Length);
-
-                // 给发送信息串每两个字符加一个空格，便于信息观看
-                StringBuilder dataSb = new StringBuilder();
-                for (int i = 0; i < dataToSend.Length; i++)
-                {
-                    dataSb.Append(dataToSend[i]);
-                    if ((i + 1) % 2 == 0 && i != dataToSend.Length - 1)
-                    {
-                        dataSb.Append(" ");
-                    }
-                }
-                //dataSb.ToString();
-                Console.WriteLine($"已发送数据: {dataSb}");
-
-                Current_time = System.DateTime.Now;
-                SetMsg("[" + Current_time.ToString("yyyy-MM-dd HH:mm:ss") + "] Send:--> " + dataSb + "\r\n");
-            }
-            catch (Exception)
-            {
-                Console.WriteLine($"串口{serialPort1.PortName}发送失败: {dataToSend}");
-            }
-        }
-
-        // 串口读取数据
-        private byte[] serialReadHEX()
-        {
-            Thread.Sleep(2); // 确保数据全部传完
-            StringBuilder responseSB = new StringBuilder();
-
-            byte[] response = new byte[serialPort1.BytesToRead];
-            int read = serialPort1.Read(response, 0, response.Length);
-
-            Console.WriteLine("收到从站回应：");
-            foreach (byte b in response)
-            {
-                // 将数组转换成字符串
-                responseSB.Append(b.ToString("X2"));
-                responseSB.Append(" ");
-                Console.Write($"{b:X2} ");
-            }
-            Console.WriteLine();
-            string responseStr = responseSB.ToString();
-
-            Current_time = System.DateTime.Now;
-            SetMsg("[" + Current_time.ToString("yyyy-MM-dd HH:mm:ss") + "] Recieved:<-- " + responseSB + "\r\n");
-
-            return response;
-        }
-
-        // 串口中断事件：当有数据收到时执行。将收到的数据按ASCII转换显示
-        private void SerialPort1_DataRecived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
-        {
-            try
-            {
-                byte[] response = serialReadHEX();
-
-                // 使用结构体类型，将一次modbus通信的数据打包起来
-                ModbusCmd.ModbusMsg_struct modbusMsg_Struct = new ModbusCmd.ModbusMsg_struct();
-                modbusMsg_Struct.response = response;
-                modbusMsg_Struct.idCode = response[0];
-                modbusMsg_Struct.funcCode = response[1];
-
-                // 跨线程修改UI，使用methodinvoker工具类
-                MethodInvoker mi = new MethodInvoker(() =>
-                {
-                    Corefunc01(modbusMsg_Struct);
-                });
-                BeginInvoke(mi);
-
-            }
-            catch (Exception ex)
-            {
-                if (!this.lockSettings_checkBox.Checked)
-                {
-                    MessageBox.Show(ex.Message);
-                }
-                //seriStatus = STATUS_WAIT;
-                return;
-            }
-        }
-
         #endregion
 
-        // 处理串口数据
-        private void Corefunc01(ModbusCmd.ModbusMsg_struct mbStruct)
+        // 处理串口数据,给measurePoint赋值,传入点号参数
+        private void Corefunc01(ModbusCmd.ModbusMsg_struct mbStruct, UInt16 pointNum)
         {
             if (mbStruct.funcCode == 4)   // 功能码为04时，返回的才是测量值
             {
@@ -242,19 +149,10 @@ namespace LaserMeasuring
                         mbStruct.valueFloat -= offsetSensorA;
 
                         // 给mp对象赋值
-                        measurePoints[pointNumA-1].aValue = mbStruct.valueFloat;
-
-                        mp1.aValue = mbStruct.valueFloat;
+                        measurePoints[pointNum - 1].aValue = mbStruct.valueFloat;
 
                         // 测量数据显示到UI
-                        RefreshUI(mbStruct.idCode, pointNumA, mbStruct.valueFloat);
-
-                        if (pointNumA < 8)
-                        {
-                            pointNumA += 1;
-                        }
-                        else
-                            pointNumA = 1;
+                        RefreshUI(mbStruct.idCode, pointNum, mbStruct.valueFloat);
                     }
                     else if (mbStruct.idCode == sensorB)
                     {
@@ -263,22 +161,15 @@ namespace LaserMeasuring
                         mbStruct.valueFloat -= offsetSensorB;
 
                         // 给mp对象赋值
-                        measurePoints[pointNumB-1].bValue = mbStruct.valueFloat;
+                        measurePoints[pointNum - 1].bValue = mbStruct.valueFloat;
 
                         // 测量数据显示到UI
-                        RefreshUI(mbStruct.idCode, pointNumB, mbStruct.valueFloat);
-
-                        if (pointNumB < 8)
-                        {
-                            pointNumB += 1;
-                        }
-                        else
-                            pointNumB = 1;
+                        RefreshUI(mbStruct.idCode, pointNum, mbStruct.valueFloat);
                     }
                 }
-                catch (Exception)
+                catch (Exception exp)
                 {
-                    ;
+                    Console.WriteLine(exp.Message);
                 }
             }
         }
@@ -374,7 +265,7 @@ namespace LaserMeasuring
             this.richTextBox1.ScrollToCaret();
         }
 
-        #region 控件触发事件
+        #region 页面辅助功能
 
         // 锁定选框点击时触发
         private void lockSettings_checkBox_CheckedChanged(object sender, EventArgs e)
@@ -422,16 +313,28 @@ namespace LaserMeasuring
             }
         }
 
-        // 读取数据 单击触发,发送modbus请求，timer定时器触发也调用它
-        private void btn_ReadA_Click(object sender, EventArgs e)
+        // 文本框只允许输入数字、退格键和小数点
+        private void txtBox_distance_KeyPress(object sender, KeyPressEventArgs e)
         {
-            serialWriteHEX(ModbusCmd.readDistance(sensorA));
+            // 允许输入数字、退格键和小数点
+            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar) && e.KeyChar != '.')
+            {
+                e.Handled = true; // 阻止输入
+            }
+
+            // 只允许输入一个小数点
+            if (e.KeyChar == '.' && (sender as TextBox).Text.IndexOf('.') > -1)
+            {
+                e.Handled = true;
+            }
         }
 
-        private void btn_ReadB_Click(object sender, EventArgs e)
+        private void 清除文本ToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            serialWriteHEX(ModbusCmd.readDistance(sensorB));
+            richTextBox1.Clear();
         }
+
+
         #endregion
 
         #region 业务逻辑-阈值判断
@@ -456,7 +359,6 @@ namespace LaserMeasuring
             }
             else
                 return 0;
-            
         }
 
         private void checkValue(string value, string threshold1, string threshold2) 
@@ -498,50 +400,128 @@ namespace LaserMeasuring
             }
         }
 
-        // 文本框只允许输入数字、退格键和小数点
-        private void txtBox_distance_KeyPress(object sender, KeyPressEventArgs e)
+        // 定时器触发函数
+        private void timer1_Tick(object sender, EventArgs e)
         {
-            // 允许输入数字、退格键和小数点
-            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar) && e.KeyChar != '.')
+            //await AsyncReadABValue();
+        }
+
+
+        // 读取数据,读取sensorA的数值
+        private async void btn_ReadA_Click(object sender, EventArgs e)
+        {
+            // 使用awiat获取任务完成后返回的string
+            var responses = await SendCommandAsync(asySerialPort, ModbusCmd.readDistance(sensorA), pointNumA);
+            // 递增循环点号
+            if (pointNumA < 8)
             {
-                e.Handled = true; // 阻止输入
+                pointNumA += 1;
             }
-
-            // 只允许输入一个小数点
-            if (e.KeyChar == '.' && (sender as TextBox).Text.IndexOf('.') > -1)
+            else
             {
-                e.Handled = true;
+                pointNumA = 1;
             }
         }
 
-        private void 清除文本ToolStripMenuItem_Click(object sender, EventArgs e)
+        // 读取数据,读取sensorB的数值
+        private async void btn_ReadB_Click(object sender, EventArgs e)
         {
-            richTextBox1.Clear();
+            // 使用awiat获取任务完成后返回的string
+            var responses = await SendCommandAsync(asySerialPort, ModbusCmd.readDistance(sensorB), pointNumB);
+            // 递增循环点号
+            if (pointNumB < 8)
+            {
+                pointNumB += 1;
+            }
+            else
+            {
+                pointNumB = 1;
+            }
         }
 
-        // 读取数据
-        private void ReadValue(object sender, EventArgs e) 
+        // 多线程同步执行，读取一个测量点的A和B传感器
+        private async Task<bool> AsyncReadABValue(UInt16 pointNum) 
         {
-
+            try
+            {
+                var responses = await Task.WhenAll(
+                    SendCommandAsync(asySerialPort, ModbusCmd.readDistance(sensorA), pointNum),
+                    SendCommandAsync(asySerialPort, ModbusCmd.readDistance(sensorB), pointNum)
+                    );
+                foreach (var response in responses)
+                {
+                    Console.WriteLine($"测量点 {pointNum} 响应: {response}");
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"错误: {ex.Message}");
+                return false;
+            }
         }
 
-        // 辅助方法：发送单个命令并返回响应
-        private async Task<string> SendCommandAsync(AsyncSerialPort port, string command)
+        // 多线程同步执行，读取8个测量点的A和B传感器
+        private async Task<bool> AsyncReadAllValue()
         {
+            try
+            {
+                for (UInt16 pointNum = 0; pointNum < 9; pointNum++)
+                {
+                    var responses = await Task.WhenAll(
+                    SendCommandAsync(asySerialPort, ModbusCmd.readDistance(sensorA), pointNum),
+                    SendCommandAsync(asySerialPort, ModbusCmd.readDistance(sensorB), pointNum)
+                    );
+                    foreach (var response in responses)
+                    {
+                        Console.WriteLine($"响应: {response}");
+                    } 
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"错误: {ex.Message}");
+                return false;
+            }
+        }
+
+
+        // 发送单个命令并返回响应
+        private async Task<string> SendCommandAsync(AsyncSerialPort port, string command, UInt16 pointNum)
+        {
+            // 精准计时器，命名空间System.Diagnostics
+            Stopwatch stopwatch = new Stopwatch();
+            // 开始计时
+            stopwatch.Start();
+
             Console.WriteLine($"开始发送命令: {command}");
+
+            Current_time = System.DateTime.Now;
+            string txMsg = "[" + Current_time.ToString("yyyy-MM-dd HH:mm:ss") + "] Send:--> " + command + "\r\n";
+            SetMsg(txMsg);
 
             // 调用异步发送接收方法
             var response = await port.SendAndReceiveAsync(command);
 
-            Console.WriteLine($"命令 {command} 已完成");
+            Current_time = System.DateTime.Now;
+            string rxMsg = "[" + Current_time.ToString("yyyy-MM-dd HH:mm:ss") + "] Recieved:<-- " + response + "\r\n";
+            SetMsg(rxMsg);
+
+            // 停止计时
+            stopwatch.Stop();
+
+            Console.WriteLine($"命令 {command} 已完成 \r\n");
+            Console.WriteLine($"耗时：{stopwatch.ElapsedMilliseconds} 毫秒");
+
+            GuiSetValue(asySerialPort.response, pointNum);
+
             return response;
         }
 
         // 串口异步发收，且等待接收完成才开始下一个发送
         public async Task RunAsyncExample()
         {
-            var serialPort = new AsyncSerialPort("COM3", 115200);
-            await serialPort.OpenAsync();
 
             try
             {
@@ -550,8 +530,8 @@ namespace LaserMeasuring
                 // 实际会按顺序执行，而非并行执行
                 var responses = await Task.WhenAll(
 
-                    SendCommandAsync(serialPort, ModbusCmd.readDistance(sensorA)),
-                    SendCommandAsync(serialPort, ModbusCmd.readDistance(sensorB))
+                    SendCommandAsync(asySerialPort, ModbusCmd.readDistance(sensorA),1),
+                    SendCommandAsync(asySerialPort, ModbusCmd.readDistance(sensorB),1)
                 );
 
                 foreach (var response in responses)
@@ -565,14 +545,29 @@ namespace LaserMeasuring
             }
             finally
             {
-                serialPort.Close();
+                asySerialPort.CloseAsync();
             }
         }
 
+        private void GuiSetValue(byte[] response, UInt16 pointNum)
+        {
+            ModbusCmd.ModbusMsg_struct mbMsg_Struct = new ModbusCmd.ModbusMsg_struct();
 
+            mbMsg_Struct.response = response;
+            mbMsg_Struct.idCode = response[0];
+            mbMsg_Struct.funcCode = response[1];
+
+            // 跨线程修改UI，使用methodinvoker工具类
+            MethodInvoker mi = new MethodInvoker(() =>
+            {
+                // 核心函数
+                Corefunc01(mbMsg_Struct, pointNum);
+            });
+            BeginInvoke(mi);
+        }
 
         // 清除SensorA数据
-        private void button1_Click(object sender, EventArgs e)
+        private void btn_ClearA_Click(object sender, EventArgs e)
         {
             txtBox_distanceA1.Text = "";
             txtBox_distanceA2.Text = "";
@@ -583,10 +578,19 @@ namespace LaserMeasuring
             txtBox_distanceA7.Text = "";
             txtBox_distanceA8.Text = "";
             pointNumA = 1;
+
+            txtBox_Thickness1.Text = "";
+            txtBox_Thickness2.Text = "";
+            txtBox_Thickness3.Text = "";
+            txtBox_Thickness4.Text = "";
+            txtBox_Thickness5.Text = "";
+            txtBox_Thickness6.Text = "";
+            txtBox_Thickness7.Text = "";
+            txtBox_Thickness8.Text = "";
         }
 
         // 清除SensorB数据
-        private void button2_Click(object sender, EventArgs e)
+        private void btn_ClearB_Click(object sender, EventArgs e)
         {
             txtBox_distanceB1.Text = "";
             txtBox_distanceB2.Text = "";
@@ -597,13 +601,51 @@ namespace LaserMeasuring
             txtBox_distanceB7.Text = "";
             txtBox_distanceB8.Text = "";
             pointNumB = 1;
+
+            txtBox_Thickness1.Text = "";
+            txtBox_Thickness2.Text = "";
+            txtBox_Thickness3.Text = "";
+            txtBox_Thickness4.Text = "";
+            txtBox_Thickness5.Text = "";
+            txtBox_Thickness6.Text = "";
+            txtBox_Thickness7.Text = "";
+            txtBox_Thickness8.Text = "";
+        }
+
+        // 全部清除
+        private void btn_ClearAll_Click(object sender, EventArgs e)
+        {
+            btn_ClearA_Click(null, null);
+            btn_ClearB_Click(null, null);
         }
 
         // 单次执行按钮
-        private async void button3_Click(object sender, EventArgs e)
+        private async void btn_ReadAB_Click(object sender, EventArgs e)
         {
-            await RunAsyncExample();
-            //RunExample();
+            bool isCompleted = await AsyncReadABValue(pointNumB);
+            if (pointNumB<8)
+            {
+                pointNumB += 1;
+            }
+            else
+            {
+                pointNumB = 1;
+            }
+            while (!isCompleted)
+            {
+                btn_ReadAB.Enabled = false;
+            }
         }
+
+        // 读取8个点位的数据
+        private async void btn_ReadAll_Click(object sender, EventArgs e)
+        {
+            bool isCompleted = await AsyncReadAllValue();
+            while (!isCompleted)
+            {
+                btn_ReadAll.Enabled = false;
+            }
+        }
+
     }
 }
